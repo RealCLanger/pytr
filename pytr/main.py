@@ -13,7 +13,9 @@ from pytr.account import login
 from pytr.alarms import Alarms
 from pytr.details import Details
 from pytr.dl import DL
+from pytr.dlcl import DLCL
 from pytr.portfolio import Portfolio
+from pytr.portfoliocl import PortfolioCL
 from pytr.transactions import export_transactions
 from pytr.utils import check_version, get_logger
 
@@ -135,6 +137,29 @@ def get_main_parser():
         description=info,
     )
     parser_portfolio.add_argument("-o", "--output", help="Output path of CSV file", metavar="OUTPUT", type=Path)
+    # clget
+    info = "Get data that CL needs"
+    parser_clget = parser_cmd.add_parser(
+        "clget",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parser_login_args, parser_sort_export],
+        help=info,
+        description=info,
+    )
+    parser_clget.add_argument("output", help="Output directory", metavar="PATH", type=Path)
+    parser_clget.add_argument(
+        "--format",
+        help="available variables:\tiso_date, time, title, doc_num, subtitle, id",
+        metavar="FORMAT_STRING",
+        default="{iso_date}{time} {title}{doc_num}",
+    )
+    parser_clget.add_argument(
+        "--last_days", help="Number of last days to include (use 0 get all days)", metavar="DAYS", default=0, type=int
+    )
+    parser_clget.add_argument(
+        "--workers", help="Number of workers for parallel downloading", metavar="WORKERS", default=8, type=int
+    )
+    parser_clget.add_argument("--universal", help="Platform independent file names", action="store_true")
     # details
     info = "Get details for an ISIN"
     parser_details = parser_cmd.add_parser(
@@ -304,6 +329,29 @@ def main():
         p.get()
         if args.output is not None:
             p.portfolio_to_csv(args.output)
+    elif args.command == "clget":
+        if args.last_days == 0:
+            since_timestamp = 0
+        else:
+            since_timestamp = (datetime.now().astimezone() - timedelta(days=args.last_days)).timestamp()
+        lg = login(
+            phone_no=args.phone_no, pin=args.pin, web=not args.applogin, store_credentials=args.store_credentials
+        )
+        dl = DLCL(
+            lg,
+            args.output / "trdata",
+            args.format,
+            since_timestamp=since_timestamp,
+            max_workers=args.workers,
+            universal_filepath=args.universal,
+            sort_export=args.sort,
+        )
+        asyncio.get_event_loop().run_until_complete(dl.dl_loop())
+        p = PortfolioCL(lg)
+        p.get()
+        p.overview()
+        if args.output is not None:
+            p.portfolio_to_csv(args.output / "kurse.csv")
     elif args.command == "export_transactions":
         export_transactions(args.input, args.output, args.lang, args.sort, args.date_isoformat)
     elif args.version:

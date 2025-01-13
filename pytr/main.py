@@ -18,6 +18,7 @@ from pytr.portfolio import Portfolio
 from pytr.portfoliocl import PortfolioCL
 from pytr.transactions import export_transactions
 from pytr.utils import check_version, get_logger
+from pytr.watchlist import Watchlist
 
 
 def get_main_parser():
@@ -359,9 +360,13 @@ def main():
         asyncio.get_event_loop().run_until_complete(dl.dl_loop())
         p = PortfolioCL(lg)
         p.get()
-        p.overview()
         if args.output is not None:
             p.portfolio_to_csv(args.output / "kurse.csv")
+        if args.output is not None:
+            w = Watchlist(lg)
+            w.get()
+            w.portfolio_to_csv(args.output / "watchlist.csv")
+        p.overview()
     elif args.command == "export_transactions":
         export_transactions(args.input, args.output, args.lang, args.sort, args.date_isoformat)
     elif args.version:

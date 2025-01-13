@@ -104,11 +104,10 @@ class PortfolioCL:
             diffP = 0.0
         else:
             diffP = ((totalNetValue / totalBuyCost) - 1) * 100
-        print(f"Depot {totalBuyCost:>43.2f} -> {totalNetValue:>10.2f} {diff:>10.2f} {diffP:>7.1f}%")
-
         cash = float(self.cash[0]["amount"])
         currency = self.cash[0]["currencyId"]
-        print(f"Cash {currency} {cash:>40.2f} -> {cash:>10.2f}")
+        print(f"Cash {currency} {cash:>40.2f}")
+        print(f"Depot {totalBuyCost:>43.2f} -> {totalNetValue:>10.2f} {diff:>10.2f} {diffP:>7.1f}%")
         print(f"Total {cash + totalBuyCost:>43.2f} -> {cash + totalNetValue:>10.2f}")
 
     def get(self):

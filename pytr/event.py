@@ -1,3 +1,4 @@
+#import pprint
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -146,6 +147,7 @@ class Event:
         else:
             if eventTypeStr not in events_known_ignored:
                 log.warning(f"Ignoring event {eventTypeStr}")
+                #pprint.pprint(event_dict, indent=4)
         return event_type
 
     @classmethod

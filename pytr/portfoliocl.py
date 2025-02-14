@@ -1,5 +1,6 @@
 import asyncio
 import locale
+import pprint
 
 from pytr.utils import preview
 
@@ -75,6 +76,10 @@ class PortfolioCL:
         positions = self.portfolio["positions"]
         csv_lines = []
         for pos in sorted(positions, key=lambda x: locale.strxfrm(x["name"].lower()), reverse=False):
+            if "price" not in pos:
+                print("Not good.")
+                pprint.pprint(pos, indent=4)
+                continue
             csv_lines.append(
                 f"{pos['name']};{pos['instrumentId']};{locale.format_string('%.6f', float(pos['netSize']))};{locale.format_string('%.4f', pos['price'], grouping=True)}"
             )

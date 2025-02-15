@@ -146,7 +146,7 @@ def get_main_parser():
     info = "Get data that CL needs"
     parser_clget = parser_cmd.add_parser(
         "clget",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=formatter,
         parents=[parser_login_args, parser_sort_export],
         help=info,
         description=info,
@@ -216,7 +216,7 @@ def get_main_parser():
         "output",
         help="Output path of CSV file",
         metavar="OUTPUT",
-        type=argparse.FileType("w"),
+        type=argparse.FileType("w", encoding="utf8"),
         default="-",
         nargs="?",
     )

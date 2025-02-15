@@ -1,8 +1,9 @@
 import json
 from datetime import datetime
 
-from .event import Event
-from .transactions import export_transactions
+from pytr.event import Event
+
+from .transactions import TransactionExporter
 from .utils import get_logger
 
 
@@ -225,10 +226,12 @@ class Timeline:
         with open(all_events_path, "w", encoding="utf-8") as f:
             json.dump(self.events_without_docs, f, ensure_ascii=False, indent=2)
 
-        export_transactions(
-            dl.output_path / "all_events.json",
-            dl.output_path / "account_transactions.csv",
-            sort=dl.sort_export,
-        )
+        with (dl.output_path / "account_transactions.csv").open("w", encoding="utf-8") as f:
+            TransactionExporter(lang="auto", date_with_time=False, decimal_localization=True).export(
+                f,
+                [Event.from_dict(ev) for ev in self.events_without_docs + self.events_with_docs],
+                sort=dl.sort_export,
+                format="csv",
+            )
 
         dl.dl_done = True

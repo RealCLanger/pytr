@@ -146,7 +146,7 @@ def get_main_parser():
     info = "Get data that CL needs"
     parser_clget = parser_cmd.add_parser(
         "clget",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=formatter,
         parents=[parser_login_args, parser_sort_export],
         help=info,
         description=info,

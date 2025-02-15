@@ -69,12 +69,15 @@ class TransactionExporter:
     def __post_init__(self):
         self._log = get_logger(__name__)
 
+        self._log.info(f"Language: {self.lang}")
         if self.lang == "auto":
             locale = getdefaultlocale()[0]
+            self._log.info(f"Locale: {locale}")
             if locale is None:
                 self.lang = "en"
             else:
                 self.lang = locale.split("_")[0]
+        self._log.info(f"Language nach determine: {self.lang}")
 
         if self.lang not in SUPPORTED_LANGUAGES:
             self._log.info(f'Language not yet supported "{self.lang}", defaulting to "en"')
@@ -129,7 +132,7 @@ class TransactionExporter:
             "isin": event.isin,
             "shares": self._decimal_format(event.shares, False),
             "fees": self._decimal_format(-event.fees) if event.fees is not None else None,
-            "taxes": self._decimal_format(event.taxes),
+            "taxes": self._decimal_format(-event.taxes) if event.taxes is not None else None,
         }
 
         # Special case for saveback events. Example payload: https://github.com/pytr-org/pytr/issues/116#issuecomment-2377491990
@@ -163,7 +166,8 @@ class TransactionExporter:
         transactions = (txn for event in events for txn in self.from_event(event))
 
         if format == "csv":
-            writer = csv.DictWriter(fp, fieldnames=self.fields(), delimiter=";")
+            #writer = csv.DictWriter(fp, fieldnames=self.fields(), delimiter=";")
+            writer = csv.DictWriter(fp, fieldnames=self.fields(), delimiter=";", lineterminator="\n")
             writer.writeheader()
             writer.writerows(transactions)
         elif format == "json":

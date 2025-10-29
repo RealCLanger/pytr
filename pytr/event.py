@@ -18,9 +18,10 @@ class EventType(Enum):
 class ConditionalEventType(EventType):
     """Events that conditionally map to None or one/multiple PPEventType events"""
 
-    SAVEBACK = auto()
-    TRADE_INVOICE = auto()
     PRIVATE_MARKETS_ORDER = auto()
+    SAVEBACK = auto()
+    SPINOFF = auto()
+    TRADE_INVOICE = auto()
 
 
 class PPEventType(EventType):
@@ -57,7 +58,6 @@ tr_event_type_mapping = {
     "card_tr_refund": PPEventType.DEPOSIT,
     # Dividends
     "CREDIT": PPEventType.DIVIDEND,
-    "ssp_corporate_action_invoice_cash": PPEventType.DIVIDEND,
     # Interests
     "INTEREST_PAYOUT": PPEventType.INTEREST,
     "INTEREST_PAYOUT_CREATED": PPEventType.INTEREST,
@@ -88,6 +88,7 @@ tr_event_type_mapping = {
     "trading_trade_executed": ConditionalEventType.TRADE_INVOICE,
     # Private markets order
     "private_markets_order_created": ConditionalEventType.PRIVATE_MARKETS_ORDER,
+    "private_markets_trade_executed": ConditionalEventType.PRIVATE_MARKETS_ORDER,
 }
 
 timeline_legacy_migrated_events_title_type_mapping = {
@@ -158,6 +159,7 @@ events_known_ignored = [
     "card_failed_verification",
     "card_successful_verification",
     "crypto_annual_statement",
+    "crypto_tnc_update_2025",
     "current_account_activated",
     "new_tr_iban",
     "private_markets_suitability_quiz_completed",
@@ -170,7 +172,6 @@ events_known_ignored = [
     "trading_savingsplan_execution_failed",
     "ssp_capital_increase_customer_instruction",
     "ssp_corporate_action_informative_notification",
-    "ssp_corporate_action_invoice_shares",
     "ssp_dividend_option_customer_instruction",
 ]
 
@@ -186,6 +187,8 @@ class Event:
     fees: Optional[float]
     taxes: Optional[float]
     note: Optional[str]
+    shares2: Optional[float]
+    isin2: Optional[str]
 
     @classmethod
     def from_dict(cls, event_dict: Dict[Any, Any]):
@@ -200,8 +203,8 @@ class Event:
         date: datetime = datetime.fromisoformat(event_dict["timestamp"][:19])
         title: str = event_dict["title"]
         event_type: Optional[EventType] = cls._parse_type(event_dict)
-        isin, shares, value, fees, taxes, note = cls._parse_type_dependent_params(event_type, event_dict)
-        return cls(date, title, event_type, isin, shares, value, fees, taxes, note)
+        isin, shares, value, fees, taxes, note, shares2, note2 = cls._parse_type_dependent_params(event_type, event_dict)
+        return cls(date, title, event_type, isin, shares, value, fees, taxes, note, shares2, note2)
 
     @staticmethod
     def _parse_type(event_dict: Dict[Any, Any]) -> Optional[EventType]:
@@ -227,6 +230,15 @@ class Event:
                 print(
                     f"unmatched timeline_legacy_migrated_events: title={event_dict.get('title', '')} subtitle={event_dict.get('subtitle', '')}"
                 )
+        elif eventTypeStr == "ssp_corporate_action_invoice_shares" and event_dict.get("subtitle", "") in ["Spin-off", "Teilrückzahlung ohne Reduzierung des Poolfaktors"]:
+                event_type = ConditionalEventType.SPINOFF
+        elif eventTypeStr == "ssp_corporate_action_invoice_shares" and event_dict.get("subtitle", "") == "Wertlos":
+                event_type = ConditionalEventType.TRADE_INVOICE
+        elif eventTypeStr == "ssp_corporate_action_invoice_cash":
+            if event_dict.get("subtitle", "") == "Aufruf von Zwischenpapieren":
+                event_type = ConditionalEventType.TRADE_INVOICE
+            else:
+                event_type = PPEventType.DIVIDEND
         else:
             event_type = tr_event_type_mapping.get(eventTypeStr, None)
         if event_type is not None:
@@ -241,7 +253,7 @@ class Event:
     @classmethod
     def _parse_type_dependent_params(
         cls, event_type: Optional[EventType], event_dict: Dict[Any, Any]
-    ) -> Tuple[Optional[str], Optional[float], Optional[float], Optional[float], Optional[float], Optional[str]]:
+    ) -> Tuple[Optional[str], Optional[float], Optional[float], Optional[float], Optional[float], Optional[str], Optional[float], Optional[str]]:
         """Parses the fees, isin, note, shares and taxes fields
 
         Args:
@@ -251,11 +263,11 @@ class Event:
         Returns:
             Tuple[Optional[Union[str, float]]]]: fees, isin, note, shares, taxes
         """
-        isin, shares, value, fees, taxes, note = (None,) * 6
+        isin, shares, value, fees, taxes, note, shares2, note2 = (None,) * 8
 
-        if isinstance(event_type, ConditionalEventType) or event_type is PPEventType.DIVIDEND:
+        if isinstance(event_type, ConditionalEventType) or event_type in [PPEventType.DIVIDEND]:
             isin = cls._parse_isin(event_dict)
-            shares, value, fees, taxes, note = cls._parse_shares_value_fees_taxes_note(event_dict)
+            shares, value, fees, taxes, note, shares2, note2 = cls._parse_shares_value_fees_taxes_note(event_dict)
         else:
             value = v if (v := event_dict.get("amount", {}).get("value", None)) is not None and v != 0.0 else None
 
@@ -264,7 +276,7 @@ class Event:
             elif event_type in [PPEventType.DEPOSIT, PPEventType.REMOVAL]:
                 note = cls._parse_card_note(event_dict)
 
-        return isin, shares, value, fees, taxes, note
+        return isin, shares, value, fees, taxes, note, shares2, note2
 
     @staticmethod
     def _parse_isin(event_dict: Dict[Any, Any]) -> str:
@@ -296,28 +308,33 @@ class Event:
     @classmethod
     def _parse_shares_value_fees_taxes_note(
         cls, event_dict: Dict[Any, Any]
-    ) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float], Optional[str]]:
+    ) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float], Optional[str], Optional[float], Optional[str]]:
         """Parses the amount of shares, applicable fees and taxes
 
         Args:
             event_dict (Dict[Any, Any]): _description_
 
         Returns:
-            Tuple[Optional[float]]: shares, fees, taxes
+            Tuple[Optional[float]]: shares, values, fees, taxes, note, shares2, note2
         """
         (
             shares,
             fees,
             taxes,
             note,
+            shares2,
+            note2,
             fees_dict,
             taxes_dict,
             gesamt_dict,
             uebersicht_dict,
             shares_dict,
+            shares_dict2,
+            wertpapier_dict,
+            wertpapier_dict2,
             quotation_dict,
             order_dict,
-        ) = (None,) * 11
+        ) = (None,) * 16
 
         value: Optional[float] = (
             v if (v := event_dict.get("amount", {}).get("value", None)) is not None and v != 0.0 else None
@@ -349,6 +366,14 @@ class Event:
                     gesamt_dict = item
                 elif title == "Aktien entfernt" and not shares_dict:
                     shares_dict = item
+                elif title == "Wertpapier" and not wertpapier_dict:
+                    wertpapier_dict = item
+                elif title == "Wertpapier" and wertpapier_dict and not wertpapier_dict2:
+                    wertpapier_dict2 = item
+                elif title == "Aktien hinzugefügt" and not shares_dict:
+                    shares_dict = item
+                elif title == "Aktien hinzugefügt" and shares_dict and not shares_dict2:
+                    shares_dict2 = item
                 elif title == "Transaktion" and not transaction_dict:
                     transaction_dict = item
                     sections = item.get("detail", {}).get("action", {}).get("payload", {}).get("sections", [])
@@ -373,13 +398,19 @@ class Event:
                     "benefits_saveback_execution",
                     "benefits_spare_change_execution",
                     "ssp_corporate_action_invoice_cash",
+                    "ssp_corporate_action_invoice_shares",
                 ]
-                and shares_dict["title"] == "Aktien"
+                and shares_dict["title"] in ["Aktien", "Aktien hinzugefügt", "Aktien entfernt"]
                 else "de"
             )
             shares = cls._parse_float_from_text_value(
                 shares_dict.get("detail", {}).get("text", ""), dump_dict, pref_locale
             )
+            if shares_dict2:
+                dump_dict["type"] = "shares2"
+                shares2 = cls._parse_float_from_text_value(
+                    shares_dict2.get("detail", {}).get("text", ""), dump_dict, pref_locale
+                )
         elif order_dict and quotation_dict:
             order = cls._parse_float_from_text_value(order_dict.get("detail", {}).get("text", ""), dump_dict)
             quotation = cls._parse_float_from_text_value(quotation_dict.get("detail", {}).get("text", ""), dump_dict)
@@ -400,15 +431,19 @@ class Event:
             )
             if event_dict["eventType"] == "ACQUISITION_TRADE_PERK" and gesamt_dict:
                 value = cls._parse_float_from_text_value(gesamt_dict.get("detail", {}).get("text", ""), dump_dict)
-        elif event_dict["eventType"] not in ["ssp_corporate_action_invoice_cash", "private_markets_order_created"]:
+                value = -value if value is not None else None
+        elif event_dict["eventType"] not in ["ssp_corporate_action_invoice_cash", "private_markets_order_created", "private_markets_trade_executed"]:
             get_event_logger().warning("Could not parse shares from %s", event_dict["eventType"])
             get_event_logger().debug("Failed to parse shares from: %s", json.dumps(event_dict, indent=4))
+            if event_dict["eventType"] == "ACQUISITION_TRADE_PERK":
+                value = 0
+                shares = 0
 
         if fees_dict:
             dump_dict["subtitle"] = fees_dict["title"]
             dump_dict["type"] = "fees"
             fees = cls._parse_float_from_text_value(fees_dict.get("detail", {}).get("text", ""), dump_dict)
-        elif event_dict["eventType"] != "ssp_corporate_action_invoice_cash":
+        elif event_dict["eventType"] not in ["ssp_corporate_action_invoice_cash", "ssp_corporate_action_invoice_shares", "ACQUISITION_TRADE_PERK"]:
             get_event_logger().warning("Could not parse fees from %s", event_dict["eventType"])
             get_event_logger().debug("Failed to parse fees from %s", json.dumps(event_dict, indent=4))
 
@@ -418,16 +453,23 @@ class Event:
             taxes = cls._parse_float_from_text_value(taxes_dict.get("detail", {}).get("text", ""), dump_dict)
         # no logging here because events may or may not have taxes
 
-        if event_dict["eventType"] == "private_markets_order_created":
+        if event_dict["eventType"] in ["private_markets_order_created", "private_markets_trade_executed"]:
             if value is None:
                 shares = 0
             else:
-                shares = abs(value)
+                shares = abs(value) / 100
             if fees is not None:
-                shares = shares - abs(fees)
+                shares = shares - (abs(fees) / 100)
             note = event_dict["subtitle"]
 
-        return shares, value, fees, taxes, note
+        if event_dict["eventType"] == "ssp_corporate_action_invoice_shares":
+            value = 0
+
+        if wertpapier_dict2:
+            note2 = wertpapier_dict2["detail"]["text"]
+        elif wertpapier_dict:
+            note2 = wertpapier_dict["detail"]["text"]
+        return shares, value, fees, taxes, note, shares2, note2
 
     @classmethod
     def _parse_taxes(cls, event_dict: Dict[Any, Any]) -> Optional[float]:

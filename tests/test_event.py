@@ -26,6 +26,7 @@ def test_new_saveback_event_from_dict():
 
     # Assert the expected values
     assert event.event_type == ConditionalEventType.SAVEBACK
+    assert event.isin == "IE00B3WJKG14"
     assert event.value == -15.0
     assert event.shares == 0.546348
 
@@ -40,7 +41,8 @@ def test_trade_perk_from_dict():
 
     # Assert the expected values
     assert event.event_type == ConditionalEventType.SAVEBACK
-    assert event.value == 10.03
+    assert event.isin == "US0378331005"
+    assert event.value == -10.03
     assert event.shares == 0.0487
 
 
@@ -127,6 +129,89 @@ def test_dividend_sell_event_from_dict():
     assert event.isin == "DE000SX12345"
 
 
+def test_zwischenpapier_event_from_dict():
+    # Load the sample JSON file
+    with open("tests/sample_zwischenpapiere.json", "r") as file:
+        sample_data = json.load(file)
+
+    # Parse the JSON data using the from_dict function
+    event = Event.from_dict(sample_data)
+
+    # Assert the expected values
+    assert event.event_type == ConditionalEventType.TRADE_INVOICE
+    assert event.value == -151.59
+    assert event.shares == 119
+    assert event.isin == "DK0064307839"
+    assert event.shares2 == 17
+    assert event.isin2 == "ORSTED A/S EM.09/25 DK 10"
+
+
+def test_sample_replace_from_dict():
+    # Load the sample JSON file
+    with open("tests/sample_replace.json", "r") as file:
+        sample_data = json.load(file)
+
+    # Parse the JSON data using the from_dict function
+    event = Event.from_dict(sample_data)
+
+    # Assert the expected values
+    assert event.event_type == ConditionalEventType.SPINOFF
+    assert event.value == 0
+    assert event.shares == 17
+    assert event.isin == "DK0064307755"
+    assert event.shares2 == 17
+    assert event.isin2 == "Orsted"
+
+
+def test_sample_spinoff_from_dict():
+    # Load the sample JSON file
+    with open("tests/sample_spinoff.json", "r") as file:
+        sample_data = json.load(file)
+
+    # Parse the JSON data using the from_dict function
+    event = Event.from_dict(sample_data)
+
+    # Assert the expected values
+    assert event.event_type == ConditionalEventType.SPINOFF
+    assert event.value == 0
+    assert event.shares == 0.309986
+    assert event.isin == "DE0007500001"
+    assert event.shares2 == None
+    assert event.isin2 == "TKMS"
+
+
+def test_sample_spinoff2_from_dict():
+    # Load the sample JSON file
+    with open("tests/sample_spinoff2.json", "r") as file:
+        sample_data = json.load(file)
+
+    # Parse the JSON data using the from_dict function
+    event = Event.from_dict(sample_data)
+
+    # Assert the expected values
+    assert event.event_type == ConditionalEventType.SPINOFF
+    assert event.value == 0
+    assert event.shares == 0.826336
+    assert event.isin == "US36467W1099"
+    assert event.shares2 == None
+    assert event.isin2 == "Gamestop Corp. WTS 30.10.26"
+
+
+def test_sample_void_from_dict():
+    # Load the sample JSON file
+    with open("tests/sample_void.json", "r") as file:
+        sample_data = json.load(file)
+
+    # Parse the JSON data using the from_dict function
+    event = Event.from_dict(sample_data)
+
+    # Assert the expected values
+    assert event.event_type == ConditionalEventType.TRADE_INVOICE
+    assert event.value == 0
+    assert event.shares == 0.285835
+    assert event.isin == "DK0064307839"
+
+
 def test_private_markets_buy_event_from_dict():
     # Load the sample JSON file
     with open("tests/sample_private_markets_order.json", "r") as file:
@@ -138,7 +223,7 @@ def test_private_markets_buy_event_from_dict():
     # Assert the expected values
     assert event.event_type == ConditionalEventType.PRIVATE_MARKETS_ORDER
     assert event.value == -101
-    assert event.shares == 100
+    assert event.shares == 1
 
 
 def test_private_markets_bonus_event_from_dict():
@@ -152,4 +237,4 @@ def test_private_markets_bonus_event_from_dict():
     # Assert the expected values
     assert event.event_type == ConditionalEventType.PRIVATE_MARKETS_ORDER
     assert event.value == -1
-    assert event.shares == 1
+    assert event.shares == 0.01

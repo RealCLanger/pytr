@@ -1,0 +1,116 @@
+    {
+        "id": "85834927-50a5-3568-8ee1-081705ea2a3a",
+        "timestamp": "2025-10-07T06:37:55.891+0000",
+        "title": "GameStop",
+        "icon": "logos/US36467W1099/v2",
+        "subtitle": "Spin-off",
+        "action": {
+            "type": "timelineDetail",
+            "payload": "85834927-50a5-3568-8ee1-081705ea2a3a"
+        },
+        "eventType": "ssp_corporate_action_invoice_shares",
+        "source": "timelineActivity",
+        "details": {
+            "id": "85834927-50a5-3568-8ee1-081705ea2a3a",
+            "sections": [
+                {
+                    "title": "Du hast Aktien aus einer Kapitalma\u00dfnahme erhalten\n",
+                    "data": {
+                        "icon": "logos/US36467W1099/v2",
+                        "timestamp": "2025-10-07T06:37:55.891Z",
+                        "status": "executed"
+                    },
+                    "type": "header"
+                },
+                {
+                    "title": "\u00dcbersicht",
+                    "data": [
+                        {
+                            "title": "Status",
+                            "detail": {
+                                "text": "Ausgef\u00fchrt",
+                                "functionalStyle": "EXECUTED",
+                                "type": "status"
+                            },
+                            "style": "plain"
+                        },
+                        {
+                            "title": "Orderart",
+                            "detail": {
+                                "text": "Spin-off",
+                                "displayValue": {
+                                    "text": "Spin-off"
+                                },
+                                "type": "text"
+                            },
+                            "style": "plain"
+                        },
+                        {
+                            "title": "Wertpapier",
+                            "detail": {
+                                "text": "Gamestop Corp. WTS 30.10.26",
+                                "displayValue": {
+                                    "text": "Gamestop Corp. WTS 30.10.26"
+                                },
+                                "type": "text"
+                            },
+                            "style": "plain"
+                        },
+                        {
+                            "title": "Aktien hinzugef\u00fcgt",
+                            "detail": {
+                                "text": "0.826336",
+                                "displayValue": {
+                                    "text": "0.826336"
+                                },
+                                "type": "text"
+                            },
+                            "style": "plain"
+                        }
+                    ],
+                    "type": "table"
+                },
+                {
+                    "title": "Dokumente",
+                    "data": [
+                        {
+                            "title": "Dokumente",
+                            "detail": "07.10.2025",
+                            "action": {
+                                "payload": "",
+                                "type": "browserModal"
+                            },
+                            "id": "8798331d-b5d0-4ced-9f84-8223263ea53f",
+                            "postboxType": "CA_SECURITIES_INVOICE"
+                        }
+                    ],
+                    "type": "documents"
+                },
+                {
+                    "title": "",
+                    "data": [
+                        {
+                            "title": "",
+                            "detail": {
+                                "icon": "common_empty_string",
+                                "action": {
+                                    "payload": {
+                                        "contextCategory": "NHC",
+                                        "contextParams": {
+                                            "timelineEventId": "85834927-50a5-3568-8ee1-081705ea2a3a",
+                                            "chat_flow_key": "NHC_0029_wealth_general_question_corporate_action"
+                                        }
+                                    },
+                                    "type": "customerSupportChat"
+                                },
+                                "style": "highlighted",
+                                "type": "listItemAvatarDefault"
+                            },
+                            "style": "highlighted"
+                        }
+                    ],
+                    "type": "table"
+                }
+            ]
+        }
+    }

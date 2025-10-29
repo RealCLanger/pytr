@@ -144,6 +144,7 @@ class Portfolio:
         subscriptions = {}
         for pos in self.portfolio:
             isin = pos["instrumentId"]
+            #if isin != "US36467W1172" and len(pos["exchangeIds"]) > 0:
             if len(pos["exchangeIds"]) > 0:
                 subscription_id = await self.tr.ticker(isin, exchange=pos["exchangeIds"][0])
                 subscriptions[subscription_id] = pos

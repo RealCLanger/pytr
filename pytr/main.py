@@ -387,7 +387,7 @@ def get_main_parser():
     parser_get_savings_plans = parser_cmd.add_parser(
         "get_savings_plans",
         formatter_class=formatter,
-        parents=[parser_login_args],
+        parents=[parser_login_args, parser_lang, parser_decimal_localization],
         help=info,
         description=info,
     )
@@ -591,6 +591,8 @@ def main():
                 waf_token=args.waf_token,
             ),
             args.outputfile,
+            decimal_localization=args.decimal_localization,
+            lang=args.lang,
         ).get()
     elif args.version:
         installed_version = version("pytr")
